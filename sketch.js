@@ -162,6 +162,7 @@ function drawScene(){
   stroke(0);
   fill(0);
   drawMenu();
+  drawPaws();
   drawConditionBar();
   //drawDynValues(0,0,0,0);
 
@@ -294,6 +295,8 @@ function drawConditionBar(){
     fill(0);
 
     textAlign(CENTER, CENTER);
+    textSize(30);
+
 
     text('x',CBOX+CBW/10,CBOY+CBH*0.07);
 
@@ -310,7 +313,7 @@ function drawConditionBar(){
 
 function drawDynValues(ParX,ParY,ParV,ParTh){
 
-    textSize(32);
+    textSize(42);
     fill(0);
 
     textAlign(LEFT, TOP);
@@ -326,6 +329,18 @@ function drawDynValues(ParX,ParY,ParV,ParTh){
 
    // print('Dynamic Information Drawer is called,',ParX,ParY,ParV,ParTh);
 }
+
+
+function drawPaws(){
+
+    if (paused){
+	    textSize(150);
+	    textAlign(LEFT, TOP);
+
+	    fill('rgba(0,0,0,0.2)');
+
+	    text('Paused',0,0);
+    }}
 
 
 
