@@ -1,3 +1,9 @@
+// FW Text Box And Sliders
+
+
+
+// Original
+
 const k = 9*(Math.pow(10, 9));
 const e = 2.718281828;
 
@@ -7,12 +13,14 @@ const MENU_RATIO = NUM_SECTIONS;
 let particles = [];
 let vectors = [];
 
-let paused = false;
+let paused = true;
 
 let menuHeight, menuWidth; //  menu dimensions
 let sceneHeight, sceneWidth; //  scene dimensions
 let oldSceneWidth, oldSceneHeight; // old scene dimensions
 let oldWidth, oldHeight; //  old canvas dimensions
+
+let CBOX, CBOY, CBW, CBH ; // Infobox Size
 
 let metersInPixels;
 let drawingMode = 0;
@@ -75,16 +83,29 @@ function setup() {
 
 function draw() {
   if (isLandscape()) {
-    // draw menu on the left getSide()
+    // draw menu on the right getSide()
     menuHeight = height;
     menuWidth = height / MENU_RATIO;
     sceneWidth = width - menuWidth;
     sceneHeight = height;
+    CBOX = 0;
+    CBOY = sceneHeight - menuHeight/5;
+    
+    CBW = menuHeight/2;
+    CBH = menuHeight/5;
+
   } else {
     menuWidth = width;
     menuHeight = width / MENU_RATIO;
     sceneWidth = width;
     sceneHeight = height - menuHeight;
+
+    CBOX = 0;
+    CBOY = 0;
+    CBW = menuWidth/2;
+    CBH = menuWidth/5;
+
+
   }
   metersInPixels = METER_RATIO * sceneWidth;
 
@@ -102,8 +123,13 @@ function draw() {
 // #             #
 // ###############
 
+
+// The Previous Mass's Variables (Global)
+
+
+
 function drawScene(){
-  background(25);
+  background(195,120,10);
   let num = 14;
   for (let i = 1; i < num-1; i++){
     for (let j = 1; j < num-1; j++){
@@ -136,6 +162,12 @@ function drawScene(){
   stroke(0);
   fill(0);
   drawMenu();
+  drawConditionBar();
+  //drawDynValues(0,0,0,0);
+
+  let velo =  0;
+  let angl = 0;
+  drawDynValues(mouseX,mouseY,velo,angl);
   strokeWeight(Math.max(menuWidth, menuHeight)/150);
   stroke(0);
   fill(0);
@@ -202,7 +234,7 @@ let MenuItemDrawingFunctions = [
 ];
 
 function drawMenu(){
-  if (width >= height) {
+  if (isLandscape()) {
     // draw menu on the right getSide()
     line(sceneWidth, 0, sceneWidth, height);
     fill(122, 122, 122);
@@ -240,6 +272,62 @@ function drawMenu(){
     }
   }
 }
+
+
+
+function drawConditionBar(){
+    //  draw the menu on the Bottom Left
+
+    fill('rgba(122,122,122, 0.35)');
+    rect(CBOX,CBOY,CBW,CBH);
+
+    fill(255);
+    rect(CBOX+CBW/50,CBOY+CBH/5, CBW/5, CBH/4);
+
+    rect(CBOX+CBW/4,CBOY+CBH/5, CBW/5,CBH/4);
+
+    rect(CBOX+CBW/50,CBOY+0.7*CBH, CBW/5, CBH/4);
+
+    rect(CBOX+CBW/4,CBOY+0.7*CBH, CBW/5, CBH/4);
+
+
+    fill(0);
+
+    textAlign(CENTER, CENTER);
+
+    text('x',CBOX+CBW/10,CBOY+CBH*0.07);
+
+    text('y',CBOX+CBW*0.32,CBOY+CBH*0.07);
+
+    text('v',CBOX+CBW/10,CBOY+0.55*CBH);
+
+    text('θ',CBOX+CBW*0.32,CBOY+0.55*CBH);
+
+    rect(CBOX + 0.5*CBW, CBOY+ CBH/4, CBW/5, CBW/5);
+    rect(CBOX + 0.76*CBW, CBOY+ CBH/4, CBW/5, CBW/5);
+
+}
+
+function drawDynValues(ParX,ParY,ParV,ParTh){
+
+    textSize(32);
+    fill(0);
+
+    textAlign(LEFT, TOP);
+
+
+    text(ParX.toString(),CBOX+CBW/50,CBOY+CBH/5);
+
+    text(ParY.toString(),CBOX+CBW/4,CBOY+CBH/5);
+
+    text(ParV.toString(),CBOX+CBW/50,CBOY+0.7*CBH);
+
+    text(ParTh.toString(),CBOX+CBW/4,CBOY+0.7*CBH);
+
+   // print('Dynamic Information Drawer is called,',ParX,ParY,ParV,ParTh);
+}
+
+
 
 function drawVector(x1, y1, x2, y2){
   push();
@@ -390,6 +478,10 @@ function mousePressed() {
       vy = 0;
     }
 
+    let velo = sqrt(vx**2+vy**2);
+
+    let angl = 0;
+
 
     if (!isMouseInMenu()){
       particles.push({
@@ -401,6 +493,8 @@ function mousePressed() {
         vx: vx,
         vy: vy
       });
+    print('Hello!');
+    
     }
   } else if (drawingMode == VECTOR_MODE){
     if (!mouseHasBeenPressed && !isMouseInMenu()){
