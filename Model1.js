@@ -1,4 +1,22 @@
-// FW Text Box And Sliders
+// FW BOXES AND SLIDERS
+
+const SphCM = 2.00;
+const aCM = 1.90;
+const HoleDiamCM = 0.15;
+
+const BoGX = 19;
+const BoGY = 13;
+
+const BoSIX = BoGX * aCM
+
+
+// Placement Helpers
+
+let PlVelo =  5;
+let PlAngl = 0;
+let PlX = 0;
+let PlY = 0;
+
 
 
 
@@ -6,14 +24,18 @@
 
 const k = 9*(Math.pow(10, 9));
 const e = 2.718281828;
+const Pi = 3.14159265358;
+const RadAng = Pi/180;
 
-const METER_RATIO = 1/7;
+let METER_RATIO; // PlaceHolder Value. Will be updated by draw. centimetres per pixel.
+
 const NUM_SECTIONS = 10;
 const MENU_RATIO = NUM_SECTIONS;
 let particles = [];
 let vectors = [];
 
 let paused = true;
+let movingmenu = false;
 
 let menuHeight, menuWidth; //  menu dimensions
 let sceneHeight, sceneWidth; //  scene dimensions
@@ -22,8 +44,22 @@ let oldWidth, oldHeight; //  old canvas dimensions
 
 let CBOX, CBOY, CBW, CBH ; // Infobox Size
 
+let DX = 0;
+let DY = 0;
+
+let OriginX;
+let OriginY;
+
+let originalbox = true;
+
 let metersInPixels;
-let drawingMode = 0;
+let drawingMode = 4;
+
+/*
+const PlasticColor = color(255,0,0);
+const PosChargeColor = color(229,184,73);
+const NegChargeColor = color(15,59,192);
+*/
 
 const POSITIVE_PARTICLE_MODE = 0;
 const NEUTRAL_PARTICLE_MODE = 1;
@@ -79,6 +115,8 @@ function setup() {
     oldSceneWidth = width;
     oldSceneHeight = height - menuHeight;
   }
+
+
 } 
 
 function draw() {
@@ -86,28 +124,48 @@ function draw() {
     // draw menu on the right getSide()
     menuHeight = height;
     menuWidth = height / MENU_RATIO;
-    sceneWidth = width - menuWidth;
-    sceneHeight = height;
-    CBOX = 0;
-    CBOY = sceneHeight - menuHeight/5;
-    
+
+    if (isBoardWide){
+	
+	sceneWidth = width - menuWidth;
+	sceneHeight = sceneWidth * BoGY/BoGX;
+
+    }else{
+	sceneHeight = height;
+	sceneWidth = sceneHeight / BoGY*BoGX;
+    }
+
     CBW = menuHeight/2;
     CBH = menuHeight/5;
-
   } else {
     menuWidth = width;
     menuHeight = width / MENU_RATIO;
-    sceneWidth = width;
-    sceneHeight = height - menuHeight;
 
-    CBOX = 0;
-    CBOY = 0;
+
+    if (isBoardWide){
+	
+	sceneWidth = width
+	sceneHeight = sceneWidth * BoGY/BoGX;
+
+    }else{
+	sceneHeight = height - menuHeight;
+	sceneWidth = sceneHeight / BoGY*BoGX;
+    }
     CBW = menuWidth/2;
     CBH = menuWidth/5;
 
 
   }
-  metersInPixels = METER_RATIO * sceneWidth;
+
+  CBOX = 0 + DX;
+  CBOY = sceneHeight - menuHeight/5 + DY;
+  metersInPixels = BoSIX;
+
+  METER_RATIO = metersInPixels / sceneWidth;
+
+
+  OriginX = sceneWidth / 2;
+  OriginY = sceneHeight / 2; 
 
   if (!paused){
     update(1, particles, vectors, sceneWidth, sceneHeight);
@@ -127,9 +185,15 @@ function draw() {
 // The Previous Mass's Variables (Global)
 
 
-
 function drawScene(){
   background(195,120,10);
+
+  fill(255);
+
+  rect(0,0,sceneWidth,sceneHeight);
+
+  drawGrids();
+
   let num = 14;
   for (let i = 1; i < num-1; i++){
     for (let j = 1; j < num-1; j++){
@@ -148,11 +212,11 @@ function drawScene(){
   for (let i = 0; i < particles.length; i++){
     let c;
     if (particles[i].charge > 0){
-      c = color(0, 0, 255);
+      c = color(10, 10, 122);
     } else if (particles[i].charge < 0) {
-      c = color(255, 220, 10);
+      c = color(122, 10, 10);
     } else {
-      c = color(0,0,0);
+      c = color(255,0,0);
     }
     drawParticle(particles[i].x, particles[i].y, particles[i].r, c);
   }
@@ -164,18 +228,16 @@ function drawScene(){
   drawMenu();
   drawPaws();
   drawConditionBar();
-  //drawDynValues(0,0,0,0);
 
-  let velo =  0;
-  let angl = 0;
-  drawDynValues(mouseX,mouseY,velo,angl);
-  strokeWeight(Math.max(menuWidth, menuHeight)/150);
-  stroke(0);
+  
+  drawDynValues(PlX,PlY,PlVelo,PlAngl);
+  //strokeWeight(Math.max(menuWidth, menuHeight)/150);
+  //stroke(0);
   fill(0);
 
   if (!isMouseInMenu()){
     if (PARTICLE_MODES.indexOf(drawingMode) != -1){
-      let radius = 20;
+      let radius = 10;
       let c;
       if (drawingMode === POSITIVE_PARTICLE_MODE){
         c = 'rgba(0, 0, 255, 0.5)';
@@ -188,7 +250,7 @@ function drawScene(){
         c = 'rgba(0, 0, 255, 0.5)';
       } else if (drawingMode === BIG_NEUTRAL_PARTICLE_MODE){
         radius *= 2;
-        c = 'rgba(125, 125, 125, 0.5)';
+        c = 'rgba(125, 125, 125, 1)';
       } else if (drawingMode === BIG_NEGATIVE_PARTICLE_MODE){
         radius *= 2;
         c = 'rgba(255, 0, 0, 0.5)';
@@ -200,7 +262,9 @@ function drawScene(){
     else if (drawingMode == VECTOR_MODE && mouseHasBeenPressed){
       stroke(125);
       drawVector(tailX, tailY, mouseX, mouseY);
-    } else if (drawingMode == ERASOR_MODE && mouseIsPressed){
+    }
+    
+    else if (drawingMode == ERASOR_MODE && mouseIsPressed){
       drawErasor(mouseX, mouseY, Math.min(menuWidth/7, menuHeight/7));
       let r = Math.min(menuWidth/7, menuHeight/7);
       if (mousePressed){
@@ -222,12 +286,12 @@ function drawScene(){
 }
 
 let MenuItemDrawingFunctions = [
-  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 8, color(0, 0, 255)),
-  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 8, color(0)),
-  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 8, color(255, 0, 0)),
-  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 4, color(0, 0, 255)),
-  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 4, color(0)),
-  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 4, color(255, 0, 0)),
+  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 8, color(0, 0, 100)),
+  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 8, color(100,0,0)),
+  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 8, color(160, 128, 51)),
+  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 4, color(0, 0, 100)),
+  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 4, color(255,0,0)),
+  (x, y, s) => drawParticle(x + s / 2, y + s / 2, s / 4, color(160, 128, 51)),
   (x, y, s) => drawVector(x + s/7, y + 6/7 * s, x + 6/7 * s, y + s/7),
   (x, y, s) => drawErasor(x + s/2, y + s/2, s/7),
   (x, y, s) => drawPlayPause(x + s/2, y + s/2, s/2),
@@ -235,17 +299,17 @@ let MenuItemDrawingFunctions = [
 ];
 
 function drawMenu(){
+  fill(100, 100, 100);
   if (isLandscape()) {
     // draw menu on the right getSide()
-    line(sceneWidth, 0, sceneWidth, height);
-    fill(122, 122, 122);
+    //line(sceneWidth, 0, sceneWidth, height);
     rect(sceneWidth, 0, menuWidth, menuHeight);
 
     for (let i = 0; i < NUM_SECTIONS+1; i++){
       stroke(0)
       line(sceneWidth, i * getSide(), width, i * getSide());
       if (i == drawingMode){
-        fill(240, 240, 240);
+        fill(255, 255, 255);
         rect(sceneWidth,i * getSide() , menuWidth, getSide());
       }
     }
@@ -255,15 +319,14 @@ function drawMenu(){
     }
   } else {
     //  draw the menu on the bottom
-    line(0, sceneHeight, width, sceneHeight);
-    fill(122, 122, 122);
-    rect(0, sceneHeight, menuWidth, menuHeight);
+    //line(0, sceneHeight, width, sceneHeight);
+    rect(0, height-menuHeight, menuWidth, menuHeight);
 
     line(sceneWidth, 0, sceneWidth, height);
     for (let i = 0; i < NUM_SECTIONS+1; i++){
-      line(i * getSide() , sceneHeight, i * getSide(), height);
+      line(i * getSide() , height-menuHeight, i * getSide(), height);
       if (i == drawingMode){
-        fill(0, 255, 0);
+        fill(255, 255, 255);
         rect(i*getSide(), height - menuHeight, getSide(), menuHeight);
       }
     }
@@ -274,23 +337,41 @@ function drawMenu(){
   }
 }
 
+function drawGrids(){
+
+  fill('rgba(2,2,2,0.5)');
+
+  let Grading = aCM / METER_RATIO;
+  let HoleDiam = HoleDiamCM / METER_RATIO
+
+  for (let j = 0; j < BoGY+1; j++) {
+    for (let i = 0; i < BoGX+1; i++) {
+      ellipse(Grading*i,Grading*j,HoleDiam,HoleDiam);
+    }
+  }
+}
+
 
 
 function drawConditionBar(){
     //  draw the menu on the Bottom Left
 
-    fill('rgba(122,122,122, 0.35)');
+    if (movingmenu){
+      fill('rgba(100,150,196, 0.55)')
+      rect(mouseX-17.5,mouseY-17.5,35,35);
+    } else {
+
+
+    fill('rgba(222,222,222, 0.75)');
     rect(CBOX,CBOY,CBW,CBH);
+    fill('rgba(100,150,196, 0.95)')
+    rect(CBOX+CBW-35,CBOY,35,35);
 
     fill(255);
     rect(CBOX+CBW/50,CBOY+CBH/5, CBW/5, CBH/4);
-
     rect(CBOX+CBW/4,CBOY+CBH/5, CBW/5,CBH/4);
-
     rect(CBOX+CBW/50,CBOY+0.7*CBH, CBW/5, CBH/4);
-
     rect(CBOX+CBW/4,CBOY+0.7*CBH, CBW/5, CBH/4);
-
 
     fill(0);
 
@@ -309,15 +390,39 @@ function drawConditionBar(){
     rect(CBOX + 0.5*CBW, CBOY+ CBH/4, CBW/5, CBW/5);
     rect(CBOX + 0.76*CBW, CBOY+ CBH/4, CBW/5, CBW/5);
 
+
+    
+
+    textAlign(LEFT, BOTTOM);
+
+    textSize(18);
+
+    if (particles.length >= 2){
+      fill(50);
+    } else {
+      fill(250);
+    }
+
+    text('CREATE',CBOX + 0.5*CBW , CBOY+ CBH/4+ CBW/5);
+
+    if (!paused){
+      fill(50);
+    } else {
+      fill(250);
+    }
+
+    text('SAVE',CBOX + 0.76*CBW, CBOY+ CBH/4 +CBW/5);
+
+    }
 }
 
 function drawDynValues(ParX,ParY,ParV,ParTh){
 
+  if (!movingmenu){
     textSize(42);
     fill(0);
 
     textAlign(LEFT, TOP);
-
 
     text(ParX.toString(),CBOX+CBW/50,CBOY+CBH/5);
 
@@ -327,21 +432,68 @@ function drawDynValues(ParX,ParY,ParV,ParTh){
 
     text(ParTh.toString(),CBOX+CBW/4,CBOY+0.7*CBH);
 
-   // print('Dynamic Information Drawer is called,',ParX,ParY,ParV,ParTh);
+  }
+}
+
+
+function CToDeg(vX,vY){
+
+    vMod = sqrt(vX*vX + vY*vY);
+
+    if (vMod == 0){
+    return 0;
+    }else{
+
+    Angle = acos(vX/vMod) / RadAng;
+    return Angle;
+  }
+}
+
+
+function CToV(vX,vY){
+
+  vMod = sqrt(vX*vX + vY*vY);
+
+  return vMod;
+
+}
+
+function DegToX(v,Th){
+
+    Ang = Th / 180 * Pi;
+
+    return v*cos(Ang);
+}
+
+function DegToY(v,Th){
+
+  Ang = Th / 180 * Pi;
+
+  return v*sin(Ang);
 }
 
 
 function drawPaws(){
 
     if (paused){
-	    textSize(150);
-	    textAlign(LEFT, TOP);
 
 	    fill('rgba(0,0,0,0.2)');
 
-	    text('Paused',0,0);
-    }}
+	    if (isLandscape()){
+	    textAlign(LEFT, TOP);
 
+	    textSize(150);
+	    text('Paused',0,0);
+
+	    }else{ 
+	    textSize(100);
+	    textAlign(LEFT, BOTTOM);
+
+	    text('Paused',0,sceneHeight);
+	    }
+
+    }
+}
 
 
 function drawVector(x1, y1, x2, y2){
@@ -409,6 +561,12 @@ function drawX(x, y, l){
 // #                      #
 // ########################
 
+
+function isBoardWide(){
+  return BoGY*width >=  BoGX*height; 
+}
+
+
 function isLandscape(){
   return width >= height;
 }
@@ -430,6 +588,11 @@ function getSelectedItem(){
       item = Math.floor(mouseX/getSide());
     }
   }
+
+  if (item < 7){
+    item = 4;
+  }
+
   return item;
 }
 
@@ -440,6 +603,48 @@ function isMouseInMenu(){
     return (mouseY > height - menuHeight);
   }
 }
+
+function isMouseInCreate(){
+  return ((mouseX > CBOX + 0.5*CBW) && (mouseX < CBOX + 0.5*CBW + CBW/5) && (mouseY > CBOY+ CBH/4) && (mouseY < CBOY+ CBH/4 + CBW/5))
+}
+
+function isMouseInSave(){
+  return ((mouseX > CBOX + 0.76*CBW) && (mouseX < CBOX + 0.76*CBW + CBW/5) && (mouseY > CBOY+ CBH/4) && (mouseY < CBOY+ CBH/4 + CBW/5))
+}
+
+
+/*
+function MouseInDyn(){
+
+
+    if(){
+
+	return 'x';
+    } else if() {
+
+	return 'y';
+
+    } else if() {
+
+	return 'v';
+
+    } else if() {
+
+	return 'th';
+
+    }else{
+	return '';
+
+} */
+
+function isMouseBusy(){
+  return (isMouseInCreate() || isMouseInSave() || isMouseInMenu() || isMouseInGrabber());
+}
+
+function isMouseInGrabber(){
+  return   ((mouseX > CBOX+CBW-35) && (mouseX < CBOX+CBW) && (mouseY > CBOY) && (mouseY < CBOY + 35));
+}
+
 
 // ##############
 // #            #
@@ -463,19 +668,81 @@ function windowResized() {
   oldSceneHeight = sceneHeight;
 }
 
+
+let PrevX, PrevY;
+
+function CreateObject(){
+
+  vX = DegToX(PlVelo,PlAngl);
+  vY = DegToY(PlVelo,PlAngl);
+
+  PrevX = PlX;
+  PrevY = PlY;
+
+  let PixX = PlX / metersInPixels;
+  let PixY = PlY / metersInPixels;
+
+  particles.push({
+    x: PixX+OriginX,
+    y: PixY+OriginY,
+    r: SphCM / METER_RATIO,
+    mass: 1,
+    charge: 0,
+    vx: vX,
+    vy: vY
+  });
+
+  print(OriginX);
+}
+
 function mousePressed() {
-  if (PARTICLE_MODES.includes(drawingMode)) {
-    let r = 20;
+
+  if (isMouseInCreate()){
+    if (particles.length < 2){
+
+      if (paused && (PrevX == PlX) && (PrevY == PlY)){
+        print('No duplicates!');
+      }else{
+        CreateObject();
+      }
+    }else{
+      print('No more!');
+    }
+
+  } else if (isMouseInGrabber() && !movingmenu) {
+
+      if (originalbox){
+        OrigX = mouseX;
+        OrigY = mouseY;
+        originalbox = false;
+      }
+      movingmenu = true;
+      print('Attempting to Move Infobox!', CBOX, CBOY)
+  } else if (movingmenu){
+    
+    DX = mouseX - OrigX;
+    DY = mouseY - OrigY;
+
+    movingmenu = false;
+    print('Moved Menu!', DX, DY);
+
+
+  } else if (PARTICLE_MODES.includes(drawingMode) && (particles.length < 2)) {
+    let r = SphCM / METER_RATIO;
     let mass = Math.PI*Math.pow(r, 2);
-    let charge = 0.01
-    let vx = 0;
-    let vy = 0;
+    let charge = 0.1;
+    let vx;
+    let vy;
+
+    vx = DegToX(PlVelo,PlAngl);
+    vy = DegToY(PlVelo,PlAngl);
+    
+    print('Drawing Particle with speeds,',vx, vy)
 
     if (BIG_PARTICLES.includes(drawingMode)) {
-      r *= 3;
-      charge *= 2;
-      mass *= 10;
+      mass *= 1;
     }
+
 
     if (NEGATIVE_PARTICLES.includes(drawingMode)) {
       charge *= -1;
@@ -483,22 +750,16 @@ function mousePressed() {
 
     if (drawingMode == BIG_NEUTRAL_PARTICLE_MODE ) {
       charge = 0;
-      vx = 0;
-      vy = 0;
+
     }
 
     if (drawingMode == NEUTRAL_PARTICLE_MODE) {
       charge = 0;
-      vx = 10;
-      vy = 0;
+
     }
+    
 
-    let velo = sqrt(vx**2+vy**2);
-
-    let angl = 0;
-
-
-    if (!isMouseInMenu()){
+    if (!isMouseBusy() && !movingmenu){
       particles.push({
         x: mouseX,
         y: mouseY,
@@ -508,7 +769,6 @@ function mousePressed() {
         vx: vx,
         vy: vy
       });
-    print('Hello!');
     
     }
   } else if (drawingMode == VECTOR_MODE){
@@ -532,6 +792,8 @@ function mousePressed() {
     paused = !paused
   }
 
+
+  if (isMouseInMenu()){
   let item = getSelectedItem();
   if (item > -1){
     if (item === PLAY_PAUSE_MODE){
@@ -543,4 +805,5 @@ function mousePressed() {
       drawingMode = item;
     }
   }
+}
 }
